@@ -1,0 +1,124 @@
+package br.com.projeto.pb_quiz.game;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Scanner;
+
+import javax.persistence.EntityManager;
+
+import br.com.pb_quiz.dao.QuestaoDao;
+import br.com.pb_quiz.dao.ResultadoDao;
+import br.com.pb_quiz.modelo.Questao;
+import br.com.pb_quiz.modelo.Resultado;
+import br.com.pb_quiz.util.JPAUtil;
+
+public class Game {
+
+	public static void main(String[] args) {
+		
+		Scanner sc = new Scanner(System.in);
+
+		int entradaMenu = 0;
+
+		do {
+			System.out.println();
+			System.out.println("Digite a opçãoo que você deseja: ");
+			System.out.println("1 - Jogar Novamente");
+			System.out.println("0 - Sair");
+
+			entradaMenu = sc.nextInt();
+			switch (entradaMenu) {
+			case 1:
+				System.out.println("---------- Iniciando o jogo ----------");
+				quiz();
+				break;
+			case 0:
+				System.out.println("---------- Obrigado por jogar! ----------");
+				break;
+			default:
+				System.out.println("Opçãoo invalida");
+			}
+
+		} while (entradaMenu != 0);
+
+	}
+
+	private static void quiz() {
+		
+
+		Scanner sc = new Scanner(System.in);
+
+		EntityManager em = JPAUtil.getEntityManager();
+		Resultado resultado = new Resultado();
+		System.out.println("Digite seu nome: ");
+		resultado.setNome(sc.nextLine());
+		while (resultado.getNome().isBlank()) {
+			System.out.println("Nome invalido, digite novamente.");
+			resultado.setNome(sc.nextLine());
+		
+		}
+		
+		resultado.setAcertos(0);
+		resultado.setErros(0);
+		QuestaoDao qDao = new QuestaoDao(em);
+		List<Questao> questoes = qDao.questoesAtivas();
+		questoes.forEach(p -> {
+
+			System.out.println("Responda com verdadeiro ou falso -> " + p.getPergunta());
+			System.out.println("Insira a resposta: ");
+
+			String respostaUsuario = sc.nextLine();
+
+			if (respostaUsuario != "verdadeiro" || respostaUsuario != "falso") {
+				int aux = 1;
+				while (aux == 1) {
+
+					if ("verdadeiro".equals(respostaUsuario) || "falso".equals(respostaUsuario)) {
+						aux = 2;
+					}
+
+					else {
+						System.out.println("Resposta inv�lida, tente novamente");
+						respostaUsuario = sc.nextLine();
+					}
+				}
+
+				boolean respostaBoolean = true;
+
+				if ("verdadeiro".equals(respostaUsuario)) {
+					respostaBoolean = true;
+					if (respostaBoolean == p.isVerdadeira()) {
+						resultado.setAcertos(resultado.getAcertos() + 1);
+						System.out.println("Você acertou!");
+					} else {
+						resultado.setErros(resultado.getErros() + 1);
+						System.out.println("Você errou!");
+					}
+				} else if ("falso".equals(respostaUsuario)) {
+					respostaBoolean = false;
+					if (respostaBoolean == p.isVerdadeira()) {
+						resultado.setAcertos(resultado.getAcertos() + 1);
+						System.out.println("Você acertou!");
+					} else {
+						resultado.setErros(resultado.getErros() + 1);
+						System.out.println("Você errou!");
+					}
+				} else {
+					System.out.println("Erro na digita��o do jogo!");
+				}
+
+				System.out.println("---------------------------------------------");
+				System.out.println();
+			}
+		});
+		ResultadoDao resultadoDao = new ResultadoDao(em);
+
+		em.getTransaction().begin();
+		resultadoDao.cadastrar(resultado);
+
+		em.getTransaction().commit();
+		
+	
+	}
+
+}
